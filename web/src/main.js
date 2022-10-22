@@ -7,19 +7,35 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import './core/gin-vue-admin'
 // 引入封装的router
 import router from '@/router/index'
+import '@/permission'
 import run from '@/core/gin-vue-admin.js'
 import auth from '@/directive/auth'
-
-import '@/permission'
-import { store } from '@/store/index'
-
+import { store } from '@/pinia'
 import App from './App.vue'
+import { initDom } from './utils/positionToCode'
+initDom()
+/**
+ * @description 导入加载进度条，防止首屏加载时间过长，用户等待
+ *
+ * */
+import Nprogress from 'nprogress'
+import 'nprogress/nprogress.css'
+Nprogress.configure({ showSpinner: false, ease: 'ease', speed: 500 })
+Nprogress.start()
+
+/**
+ * 无需在这块结束，会在路由中间件中结束此块内容
+ * */
+
 const app = createApp(App)
 app.config.productionTip = false
-app.use(run)
-  .use(auth)
+
+app
+  .use(run)
   .use(store)
+  .use(auth)
   .use(router)
-  .use(ElementPlus, { locale: zhCn }).mount('#app')
+  .use(ElementPlus, { locale: zhCn })
+  .mount('#app')
 
 export default app

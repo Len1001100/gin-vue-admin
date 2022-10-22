@@ -1,7 +1,7 @@
 <template>
   <div class="init_page">
-    <div class="init_page_panle">
-      <div v-if="hello < 2" id="hello" :class="[hello < 1 ? 'slide-in-fwd-top' : 'slide-out-right']" class="hello  ">
+    <div class="init_page_panel">
+      <div v-if="hello < 2" id="hello" :class="[hello < 1 ? 'slide-in-fwd-top' : 'slide-out-right']" class="hello">
         <div>
           <div class="hello_title">GIN-VUE-ADMIN</div>
           <p class="in-two a-fadeinT">初始化须知</p>
@@ -19,11 +19,12 @@
           </p>
         </div>
       </div>
-      <div v-if="hello > 0 " :class="[(hello > 0 && !out)? 'slide-in-left' : '' , out ? 'slide-out-right' : '']" class=" form">
-        <el-form ref="form" :model="form" label-width="100px">
+      <div v-if="hello > 0 " :class="[(hello > 0 && !out)? 'slide-in-left' : '' , out ? 'slide-out-right' : '']" class="form">
+        <el-form ref="formRef" :model="form" label-width="100px">
           <el-form-item label="数据库类型">
-            <el-select v-model="form.sqlType" disabled placeholder="请选择">
-              <el-option key="mysql" label="mysql(目前只支持mysql)" value="mysql" />
+            <el-select v-model="form.dbType" placeholder="请选择" @change="changeDB">
+              <el-option key="mysql" label="mysql" value="mysql" />
+              <el-option key="pgsql" label="pgsql(测试版)" value="pgsql" />
             </el-select>
           </el-form-item>
           <el-form-item label="host">
@@ -54,60 +55,93 @@
     </div>
   </div>
 </template>
+
 <script>
-import { initDB } from '@/api/initdb'
 export default {
   name: 'Init',
-  data() {
-    return {
-      hello: 0,
-      out: false,
-      form: {
-        sqlType: 'mysql',
+}
+</script>
+
+<script setup>
+import { initDB } from '@/api/initdb'
+import { reactive, ref } from 'vue'
+import { ElLoading, ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const hello = ref(0)
+const showNext = () => {
+  hello.value = hello.value + 1
+}
+
+const goDoc = () => {
+  window.open('https://www.gin-vue-admin.com/guide/start-quickly/env.html')
+}
+
+const out = ref(false)
+
+const form = reactive({
+  dbType: 'mysql',
+  host: '127.0.0.1',
+  port: '3306',
+  userName: 'root',
+  password: '',
+  dbName: 'gva'
+})
+const changeDB = (val) => {
+  switch (val) {
+    case 'mysql':
+      Object.assign(form, {
+        dbType: 'mysql',
         host: '127.0.0.1',
         port: '3306',
         userName: 'root',
         password: '',
         dbName: 'gva'
-      }
-    }
-  },
-  created() {
-    // setInterval(() => {
-    //   if (this.hello < 3) {
-    //     this.hello = this.hello + 1
-    //   }
-    // }, 2000)
-  },
-  methods: {
-    showNext() {
-      this.hello = this.hello + 1
-    },
-    goDoc() {
-      window.open('https://www.gin-vue-admin.com/docs/first_master#3-init')
-    },
-    async onSubmit() {
-      const loading = this.$loading({
-        lock: true,
-        text: '正在初始化数据库，请稍候',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
       })
-      try {
-        const res = await initDB(this.form)
-        if (res.code === 0) {
-          this.out = true
-          this.$message({
-            type: 'success',
-            message: res.msg
-          })
-          this.$router.push({ name: 'Login' })
-        }
-        loading.close()
-      } catch (err) {
-        loading.close()
-      }
+      break
+    case 'pgsql':
+      Object.assign(form, {
+        dbType: 'pgsql',
+        host: '127.0.0.1',
+        port: '5432',
+        userName: 'postgres',
+        password: '',
+        dbName: 'gva'
+      })
+      break
+    default:
+      Object.assign(form, {
+        dbType: 'mysql',
+        host: '127.0.0.1',
+        port: '3306',
+        userName: 'root',
+        password: '',
+        dbName: 'gva'
+      })
+  }
+}
+const onSubmit = async() => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在初始化数据库，请稍候',
+    spinner: 'loading',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  try {
+    const res = await initDB(form)
+    if (res.code === 0) {
+      out.value = true
+      ElMessage({
+        type: 'success',
+        message: res.msg
+      })
+      router.push({ name: 'Login' })
     }
+    loading.close()
+  } catch (err) {
+    loading.close()
   }
 }
 </script>
@@ -121,14 +155,13 @@ export default {
   width: 100%;
   height: 100%;
   position: relative;
-  .init_page_panle{
+  .init_page_panel{
     position: absolute;
     top: 3vh;
     left: 2vw;
     width: 96vw;
     height: 94vh;
     background-color: rgba(255,255,255,.8);
-    backdrop-filter: blur(5px);
     border-radius: 10px;
     display: flex;
     align-items: center;
